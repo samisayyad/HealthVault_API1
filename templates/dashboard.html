@@ -1,0 +1,271 @@
+{% extends 'base.html' %}
+
+{% block title %}Advanced Dashboard{% endblock %}
+
+{% block content %}
+
+<style>
+   body {
+            background-image: url('https://img.freepik.com/premium-photo/health-insurance-concept-reduce-medical-expenses-hand-flip-wood-cube-with-icon-healthcare-medical-coin-wood-background-copy-space_52701-34.jpg');
+            background-size: cover;
+            background-position: center;
+            background-attachment: fixed;
+            height: 100vh;
+            margin: 0;
+        }1
+
+    .container {
+        max-width: 1200px;
+        margin: 50px auto;
+        padding: 20px;
+        background: #fff;
+        border-radius: 10px;
+        box-shadow: 0 0 15px rgba(0, 0, 0, 0.1);
+    }
+
+    h2 {
+        text-align: center;
+        margin-bottom: 30px;
+    }
+
+    .charts-container {
+        display: flex;
+        justify-content: space-between;
+        gap: 20px;
+        margin-bottom: 30px;
+        flex-wrap: wrap;
+
+    }
+
+    .chart-card {
+        flex: 1;
+        height: 450px;
+        max-width: 48%;
+        background: #fff;
+        border-radius: 10px;
+        padding: 20px;
+        box-sizing: border-box;
+        box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+        margin-bottom: 20px;
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        align-items: center;
+    }
+
+    .chart-title {
+        text-align: center;
+        font-size: 18px;
+        font-weight: bold;
+        margin-bottom: 10px;
+    }
+
+    @media (max-width: 768px) {
+        .chart-card {
+            max-width: 100%;
+            margin-bottom: 15px;
+        }
+    }
+
+    .table-container {
+        margin-top: 30px;
+        overflow-x: auto;
+        max-width: 600px;
+            margin: 50px auto;
+            background: #fff;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+    }
+
+    table {
+        width: 100%;
+        border-collapse: collapse;
+        margin: 20px 0;
+        font-size: 16px;
+        text-align: left;
+    }
+
+    th, td {
+        padding: 12px 15px;
+        border: 1px solid #ddd;
+    }
+
+    th {
+        background-color: #f4f4f4;
+    }
+
+    tr:hover {
+        background-color: #f1f1f1;
+    }
+</style>
+
+<div class="container">
+    <h2> Patients Dashboard</h2>
+    <div class="charts-container">
+        <div class="chart-card">
+            <div class="chart-title">Age Distribution</div>
+            <canvas id="ageChart" width="400" height="400"></canvas>
+        </div>
+        <div class="chart-card">
+            <div class="chart-title">Total Charges by Region</div>
+            <canvas id="chargesChart" width="400" height="400"></canvas>
+        </div>
+        <div class="chart-card">
+            <div class="chart-title">BMI Distribution</div>
+            <canvas id="bmiChart" width="400" height="400"></canvas>
+        </div>
+        <div class="chart-card">
+            <div class="chart-title">Charges Over Age</div>
+            <canvas id="chargesOverAgeChart" width="400" height="400"></canvas>
+        </div>
+    </div>
+
+    <div class="table-container">
+        <h3>Patient Data</h3>
+        <table>
+            <thead>
+                <tr>
+                    <th>Name</th>
+                    <th>Age</th>
+                    <th>Sex</th>
+                    <th>BMI</th>
+                    <th>Children</th>
+                    <th>Charges</th>
+                    <th>Region</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for patient in content %}
+                <tr>
+                    <td>{{ patient.name }}</td>
+                    <td>{{ patient.age }}</td>
+                    <td>{{ patient.sex }}</td>
+                    <td>{{ patient.bmi }}</td>
+                    <td>{{ patient.children }}</td>
+                    <td>{{ patient.charges }}</td>
+                    <td>{{ patient.region }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+    const patient = {{ content | safe }};
+
+    // Utility: Gradient generator
+    function createGradient(ctx, colorStart, colorEnd) {
+        const gradient = ctx.createLinearGradient(0, 0, 0, 400);
+        gradient.addColorStop(0, colorStart);
+        gradient.addColorStop(1, colorEnd);
+        return gradient;
+    }
+
+    // Age Distribution Chart
+    const ageCtx = document.getElementById('ageChart').getContext('2d');
+    const ageGroups = { '0-20': 0, '21-40': 0, '41-60': 0, '61+': 0 };
+    patient.forEach(p => {
+        const age = p.age;
+        if (age <= 20) ageGroups['0-20']++;
+        else if (age <= 40) ageGroups['21-40']++;
+        else if (age <= 60) ageGroups['41-60']++;
+        else ageGroups['61+']++;
+    });
+    new Chart(ageCtx, {
+        type: 'bar',
+        data: {
+            labels: Object.keys(ageGroups),
+            datasets: [{
+                label: 'Patients',
+                data: Object.values(ageGroups),
+                backgroundColor: createGradient(ageCtx, '#4caf50', '#2196f3'),
+                borderColor: '#2196f3',
+                borderWidth: 1
+            }]
+        },
+        options: {
+            responsive: true,
+            plugins: { tooltip: { enabled: true }, legend: { display: false } },
+            scales: { y: { beginAtZero: true } }
+        }
+    });
+
+    // Total Charges by Region Chart
+    const chargesCtx = document.getElementById('chargesChart').getContext('2d');
+    const regions = ['northeast', 'northwest', 'southeast', 'southwest'];
+    const regionCharges = { northeast: 0, northwest: 0, southeast: 0, southwest: 0 };
+    patient.forEach(p => { regionCharges[p.region] += p.charges; });
+    new Chart(chargesCtx, {
+        type: 'doughnut',
+        data: {
+            labels: regions,
+            datasets: [{
+                label: 'Total Charges',
+                data: Object.values(regionCharges),
+                backgroundColor: ['#ff6384', '#36a2eb', '#cc65fe', '#ffce56']
+            }]
+        },
+        options: {
+            responsive: true,
+            plugins: { legend: { position: 'top' }, tooltip: { enabled: true } }
+        }
+    });
+
+    // BMI Distribution Chart (Changed to Pie chart)
+    const bmiCtx = document.getElementById('bmiChart').getContext('2d');
+    const bmiCategories = { Underweight: 0, Normal: 0, Overweight: 0, Obese: 0 };
+    patient.forEach(p => {
+        const bmi = p.bmi;
+        if (bmi < 18.5) bmiCategories['Underweight']++;
+        else if (bmi <= 24.9) bmiCategories['Normal']++;
+        else if (bmi <= 29.9) bmiCategories['Overweight']++;
+        else bmiCategories['Obese']++;
+    });
+    new Chart(bmiCtx, {
+        type: 'pie', // Changed from 'polarArea' to 'pie'
+        data: {
+            labels: Object.keys(bmiCategories),
+            datasets: [{
+                data: Object.values(bmiCategories),
+                backgroundColor: ['#8bc34a', '#ffeb3b', '#ff9800', '#f44336']
+            }]
+        },
+        options: {
+            responsive: true,
+            plugins: { legend: { position: 'top' }, tooltip: { enabled: true } }
+        }
+    });
+
+    // Charges Over Age Chart
+    const chargesOverAgeCtx = document.getElementById('chargesOverAgeChart').getContext('2d');
+    const chargesOverAge = { '0-20': 0, '21-40': 0, '41-60': 0, '61+': 0 };
+    patient.forEach(p => {
+        const age = p.age;
+        const ageGroup = (age <= 20) ? '0-20' : (age <= 40) ? '21-40' : (age <= 60) ? '41-60' : '61+';
+        chargesOverAge[ageGroup] += p.charges;
+    });
+    new Chart(chargesOverAgeCtx, {
+        type: 'line',
+        data: {
+            labels: Object.keys(chargesOverAge),
+            datasets: [{
+                label: 'Total Charges',
+                data: Object.values(chargesOverAge),
+                borderColor: '#2196f3',
+                backgroundColor: createGradient(chargesOverAgeCtx, '#2196f3', '#ff9800'),
+                fill: true,
+                tension: 0.4
+            }]
+        },
+        options: {
+            responsive: true,
+            plugins: { tooltip: { enabled: true }, legend: { position: 'top' } },
+            scales: { y: { beginAtZero: true } }
+        }
+    });
+</script>
+
+{% endblock %}
